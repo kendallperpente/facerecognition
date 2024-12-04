@@ -16,7 +16,7 @@ if not os.path.exists("attending_faces"):
 # Load pre-trained face encodings (from the 'images' directory)
 known_face_encodings = []
 known_face_names = []
-image_folder = './images/'
+image_folder = 'C:\\Users\\kperp\\OneDrive\\Desktop\\images\\'
 
 # Train face recognizer by loading saved images of known people
 for filename in os.listdir(image_folder):
