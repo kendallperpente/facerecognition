@@ -1,86 +1,89 @@
 import cv2
+import face_recognition
 import os
-from datetime import datetime
 import time
+from datetime import datetime
 
-# Initialize the face detector and video capture
-face_classifier = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
+# Load the known images and encode the faces
+obama_image = face_recognition.load_image_file("obama.jpg")
+obama_face_encoding = face_recognition.face_encodings(obama_image)[0]
+
+biden_image = face_recognition.load_image_file("biden.jpg")
+biden_face_encoding = face_recognition.face_encodings(biden_image)[0]
+
+# Create arrays of known face encodings and their names
+known_face_encodings = [
+    obama_face_encoding,
+    biden_face_encoding
+]
+known_face_names = [
+    "Barack Obama",
+    "Joe Biden"
+]
+
+# Initialize the webcam
 video_capture = cv2.VideoCapture(0)
 
-# Create a directory for saving captured faces
-if not os.path.exists("attending_faces"):
-    os.makedirs("attending_faces")
-
-# Dictionary to track attendance (face ID and time of attendance)
+# Create a dictionary to track attendance
 attendance_dict = {}
 last_detection_time = 0
 detection_delay = 5  # Delay in seconds between detections
 
-# Function to detect faces in a frame
-def detect_bounding_box(vid):
-    gray_image = cv2.cvtColor(vid, cv2.COLOR_BGR2GRAY)
-    faces = face_classifier.detectMultiScale(gray_image, scaleFactor=1.1, minNeighbors=5, minSize=(40, 40))
-    return faces
-
-# Function to save the detected face image
-def save_face(face_img):
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    face_filename = f"attending_faces/face_{timestamp}.jpg"
-    cv2.imwrite(face_filename, face_img)
-    return face_filename
-
 # Function to mark attendance
-def mark_attendance(face_id):
-    attendance_dict[face_id] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    print(f"Face {face_id} marked as attending at {attendance_dict[face_id]}")
-    # Write the attendance to the text file
+def mark_attendance(person_name):
+    attendance_dict[person_name] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"{person_name} marked as attending at {attendance_dict[person_name]}")
+    # Optionally write to a text file for attendance log
     with open("attendance_records.txt", "a") as f:
-        f.write(f"{face_id}: {attendance_dict[face_id]}\n")
+        f.write(f"{person_name}: {attendance_dict[person_name]}\n")
 
-# Function to show the attendance on the video feed
-def show_attendance_on_frame(video_frame):
-    y_offset = 30  # Initial y-offset to start displaying attendance
-    for face_id, time_recorded in attendance_dict.items():
-        cv2.putText(video_frame, f"{face_id}: {time_recorded}", (10, y_offset), 
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 1, cv2.LINE_AA)
-        y_offset += 30  # Increase y-offset for the next record
-
-# Main loop to capture video and detect faces
+# Main loop to capture frames and recognize faces
 while True:
-    result, video_frame = video_capture.read()
-    if not result:
-        print("Failed to grab frame")
-        break
+    # Capture a frame from the video feed
+    ret, frame = video_capture.read()
 
-    faces = detect_bounding_box(video_frame)
-    current_time = time.time()
-    
-    for (x, y, w, h) in faces:
-        face_roi = video_frame[y:y+h, x:x+w]
+    # Resize the frame for faster processing
+    small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
 
-        if (current_time - last_detection_time) > detection_delay:
-            face_filename = save_face(face_roi)
-            face_id = os.path.basename(face_filename).split('.')[0]
-            mark_attendance(face_id)
-            last_detection_time = current_time
+    # Convert the image to RGB (face_recognition expects RGB images)
+    rgb_small_frame = small_frame[:, :, ::-1]
 
-            cv2.putText(video_frame, "Attending", (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
+    # Find all the faces and face encodings in the current frame
+    face_locations = face_recognition.face_locations(rgb_small_frame)
+    face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
 
-    # Show the live attendance list on the video feed
-    show_attendance_on_frame(video_frame)
+    # Loop over each face found in the frame
+    for (top, right, bottom, left), face_encoding in zip(face_locations, face_encodings):
+        # Check if the detected face matches any known face encoding
+        matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
+        name = "Unknown"
 
-    # Display the video feed
-    cv2.imshow("Face Detection & Attendance", video_frame)
+        # If a match was found, use the known face name
+        if True in matches:
+            first_match_index = matches.index(True)
+            name = known_face_names[first_match_index]
 
+            # Mark attendance for the recognized person
+            mark_attendance(name)
+
+        # Draw a rectangle around the face
+        cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), 2)
+
+        # Label the face with the name
+        cv2.putText(frame, name, (left + 6, bottom - 6), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 1)
+
+    # Display the resulting image
+    cv2.imshow('Face Recognition Attendance System', frame)
+
+    # Wait for a key press to exit
     if cv2.waitKey(1) & 0xFF == ord("q"):
         break
 
-# Release the video capture and close the OpenCV window
+# Release the webcam and close all windows
 video_capture.release()
 cv2.destroyAllWindows()
 
-# Print the final attendance record to console
+# Print the attendance records
 print("\nAttendance Record:")
-for face_id, time_recorded in attendance_dict.items():
-    print(f"{face_id}: {time_recorded}")
-
+for person_name, time_recorded in attendance_dict.items():
+    print(f"{person_name}: {time_recorded}")
