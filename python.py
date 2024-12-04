@@ -19,11 +19,8 @@ attendance_dict = {}
 last_detection_time = 0
 detection_delay = 5  # Delay in seconds between detections
 
-# Get the desktop path
-desktop_path = os.path.expanduser("~/Desktop")
-
 # Path to the images folder on the desktop
-images_folder = os.path.join(desktop_path, "images")
+images_folder = r"C:\Users\kperp\OneDrive\Desktop\images"
 
 # Load known faces (update the file paths)
 obama_image = face_recognition.load_image_file(os.path.join(images_folder, "obama.jpg"))
