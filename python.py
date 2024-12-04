@@ -90,3 +90,4 @@ cv2.destroyAllWindows()
 print("\nAttendance Record:")
 for person_name, time_recorded in attendance_dict.items():
     print(f"{person_name}: {time_recorded}")
+  
