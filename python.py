@@ -4,6 +4,9 @@ import os
 import time
 from datetime import datetime
 
+
+# Path to the folder containing images on your desktop
+image_folder = r"C:\Users\kperp\OneDrive\Desktop\images"
 # Load the known images and encode the faces
 obama_image = face_recognition.load_image_file("obama.jpg")
 obama_face_encoding = face_recognition.face_encodings(obama_image)[0]
