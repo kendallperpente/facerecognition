@@ -19,11 +19,17 @@ attendance_dict = {}
 last_detection_time = 0
 detection_delay = 5  # Delay in seconds between detections
 
-# Load known faces
-obama_image = face_recognition.load_image_file("obama.jpg")
+# Get the desktop path
+desktop_path = os.path.expanduser("~/Desktop")
+
+# Path to the images folder on the desktop
+images_folder = os.path.join(desktop_path, "images")
+
+# Load known faces (update the file paths)
+obama_image = face_recognition.load_image_file(os.path.join(images_folder, "obama.jpg"))
 obama_face_encoding = face_recognition.face_encodings(obama_image)[0]
 
-biden_image = face_recognition.load_image_file("biden.jpg")
+biden_image = face_recognition.load_image_file(os.path.join(images_folder, "biden.jpg"))
 biden_face_encoding = face_recognition.face_encodings(biden_image)[0]
 
 # Create arrays of known face encodings and their names
@@ -128,7 +134,6 @@ for name in absent_names:
     attendance_dict[name] = "Absent"
 
 # Save the attendance record to a text file on the desktop
-desktop_path = os.path.expanduser("~/Desktop")
 attendance_file = os.path.join(desktop_path, "attendance_record.txt")
 
 with open(attendance_file, "w") as file:
